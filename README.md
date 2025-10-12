@@ -13,29 +13,49 @@ All rights reserved to the project authors and their institution.
 ##  API
 
 """
-Simple REST API to control two LEDs (Flask)
+🔌 API LED
+1️⃣ Odczyt stanu LED (GET)
+Endpointy:
 
-Features:
-- Endpoints:
-  GET  /api/leds               -> returns states of both LEDs
-  GET  /api/leds/<id>          -> returns state of LED id (1 or 2)
-  PUT  /api/leds/<id>          -> set state with JSON {"state": "on"|"off"}
-  POST /api/leds/<id>/toggle   -> toggle LED
+GET /api/leds/1 — odczyt stanu diody LED 1
 
-- Uses RPi.GPIO if available; falls back to a simulated controller for development on non-RPi systems.
+GET /api/leds/2 — odczyt stanu diody LED 2
 
-Example curl:
-  # set LED 1 on
-  curl -X PUT -H "Content-Type: application/json" -d '{"state":"on"}' http://localhost:5000/api/leds/1
+Opis:
 
-  # get all
-  curl http://localhost:5000/api/leds
+Zwraca aktualny stan danej diody w formacie JSON (on lub off).
 
+Odpowiedź (200 OK):
+{
+  "id": 1,
+  "state": "on"
+}
 
----
+Przykłady curl:
+curl http://localhost:5000/api/leds/1
+curl http://localhost:5000/api/leds/2
 
-## 📫 Contact
+2️⃣ Przełączanie stanu LED (POST)
+Endpointy:
 
-If you have any questions, feel free to reach out via the [Issues](https://github.com/your-repo/issues) tab.
+POST /api/leds/1/toggle — zmiana stanu diody LED 1
+
+POST /api/leds/2/toggle — zmiana stanu diody LED 2
+
+Opis:
+
+Zmienia stan diody na przeciwny — jeśli była on, zostanie off, i odwrotnie.
+Nie wymaga żadnego ciała żądania (body).
+
+Odpowiedź (200 OK):
+{
+  "id": 1,
+  "state": "off"
+}
+
+Przykłady curl:
+curl -X POST http://localhost:5000/api/leds/1/toggle
+curl -X POST http://localhost:5000/api/leds/2/toggle
+
 
 ---
