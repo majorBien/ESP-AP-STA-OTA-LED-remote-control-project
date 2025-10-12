@@ -1,14 +1,6 @@
 # LED control – Mechatronics IV
 
 
-
-## 🖥️ Technologies Used
-
-- **PLC programming** (e.g., Siemens TIA Portal or equivalent)
-- **HMI/SCADA visualization**
-- **Mechatronic system design**
-- **CAD tools** for layout and schematics
-
 ---
 
 ## 📎 License
