@@ -3,35 +3,66 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sterowanie LED + OTA</title>
+  <title>Sterowanie ESP - LED, OTA, Sieć</title>
   <link rel="stylesheet" href="app.css">
 </head>
 <body>
-  <h1>Sterowanie LED</h1>
+  <header>
+    <h1>Sterowanie ESP</h1>
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="led">💡 LED</button>
+      <button class="tab-btn" data-tab="ota">📦 OTA</button>
+      <button class="tab-btn" data-tab="network">📶 Sieć</button>
+    </nav>
+  </header>
 
-  <div class="led-container">
-    <div class="led-card">
-      <h2>LED 1</h2>
-      <div class="led" id="led1"></div>
-      <button id="led1-btn">Toggle LED 1</button>
-    </div>
+  <main>
+    <!-- LED CONTROL -->
+    <section id="led" class="tab active">
+      <div class="led-container">
+        <div class="led-card">
+          <h2>LED 1</h2>
+          <div class="led" id="led1"></div>
+          <button id="led1-btn">Toggle LED 1</button>
+        </div>
+        <div class="led-card">
+          <h2>LED 2</h2>
+          <div class="led" id="led2"></div>
+          <button id="led2-btn">Toggle LED 2</button>
+        </div>
+      </div>
+    </section>
 
-    <div class="led-card">
-      <h2>LED 2</h2>
-      <div class="led" id="led2"></div>
-      <button id="led2-btn">Toggle LED 2</button>
-    </div>
-  </div>
+    <!-- OTA UPDATE -->
+    <section id="ota" class="tab">
+      <h2>Aktualizacja OTA</h2>
+      <div class="ota-section">
+        <input type="file" id="selected_file">
+        <button id="btnUpdate">Aktualizuj oprogramowanie</button>
+        <div id="file_info"></div>
+        <div id="ota_update_status"></div>
+        <div>Latest Firmware: <span id="latest_firmware">?</span></div>
+      </div>
+    </section>
 
-  <hr>
+    <!-- NETWORK CONFIG -->
+    <section id="network" class="tab">
+      <h2>Konfiguracja Wi-Fi</h2>
+      <div class="network-section">
+        <button id="btnGetNetwork">📥 Pobierz konfigurację</button>
+        <div id="network_status"></div>
 
-  <h2>Aktualizacja OTA</h2>
-  <input type="file" id="selected_file">
-  <button id="btnUpdate">Aktualizuj oprogramowanie</button>
-  <div id="file_info"></div>
-  <div id="ota_update_status"></div>
-  <div>Latest Firmware: <span id="latest_firmware">?</span></div>
+        <label for="ssid">SSID:</label>
+        <input type="text" id="ssid" placeholder="Nazwa sieci Wi-Fi">
 
-  <script src="app.js"></script>
+        <label for="password">Hasło:</label>
+        <input type="password" id="password" placeholder="Hasło Wi-Fi">
+
+        <button id="btnSaveNetwork">💾 Zapisz konfigurację</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js" type="module"></script>
 </body>
 </html>
