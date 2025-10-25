@@ -1,4 +1,4 @@
-idf_component_register(SRCS  "main.c" "http_server.c" "wifi_app.c"
+idf_component_register(SRCS  "main.c" "http_server.c" "wifi_app.c" "io.c"
                        INCLUDE_DIRS "."
                         EMBED_FILES "webpage/favicon.ico" 
                         "webpage/index.html" 
