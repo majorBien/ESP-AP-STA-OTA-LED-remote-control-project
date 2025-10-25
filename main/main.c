@@ -9,6 +9,7 @@
 #include "nvs_flash.h"
 #include "wifi_app.h"
 #include "freertos/task.h"
+#include "io.h"
 
 void app_main(void){
     // Initialize NVS
@@ -22,5 +23,6 @@ void app_main(void){
 
     // Start tasks
 	wifi_app_start();
+	io_init();
 }
 

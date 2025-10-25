@@ -14,6 +14,7 @@
 
 #include <string.h> 
 #include <cJSON.h> 
+#include "io.h"
 
 // Tag used for ESP serial console messages
 static const char TAG[] = "http_server";
@@ -27,7 +28,8 @@ static TaskHandle_t task_http_server_monitor = NULL;
 // Queue handle used to manipulate the main queue of events
 static QueueHandle_t http_server_monitor_queue_handle;
 
-static esp_err_t led_control_handler(httpd_req_t *req);
+static esp_err_t led_get_handler(httpd_req_t *req);
+static esp_err_t led_toggle_handler(httpd_req_t *req);
 
 // Embedded files: JQuery, index.html, app.css, app.js and favicon.ico files
 extern const uint8_t jquery_3_3_1_min_js_start[]	asm("_binary_jquery_3_3_1_min_js_start");
@@ -248,14 +250,41 @@ static httpd_handle_t http_server_configure(void)
 
 
 
-		// register endpoint for led control
-		httpd_uri_t json_post = {
-    			.uri = "/upload",
-   				 .method = HTTP_POST,
-   				 .handler = led_control_handler,
-   				 .user_ctx = NULL
-		};
-		httpd_register_uri_handler(http_server_handle, &json_post);
+	    // GET /api/leds/1
+	    httpd_uri_t get_led1 = {
+	        .uri = "/api/leds/1",
+	        .method = HTTP_GET,
+	        .handler = led_get_handler,
+	        .user_ctx = NULL
+	    };
+	    httpd_register_uri_handler(http_server_handle, &get_led1);
+	
+	    // GET /api/leds/2
+	    httpd_uri_t get_led2 = {
+	        .uri = "/api/leds/2",
+	        .method = HTTP_GET,
+	        .handler = led_get_handler,
+	        .user_ctx = NULL
+	    };
+	    httpd_register_uri_handler(http_server_handle, &get_led2);
+	
+	    // POST /api/leds/1/toggle
+	    httpd_uri_t post_toggle1 = {
+	        .uri = "/api/leds/1/toggle",
+	        .method = HTTP_POST,
+	        .handler = led_toggle_handler,
+	        .user_ctx = NULL
+	    };
+	    httpd_register_uri_handler(http_server_handle, &post_toggle1);
+	
+	    // POST /api/leds/2/toggle
+	    httpd_uri_t post_toggle2 = {
+	        .uri = "/api/leds/2/toggle",
+	        .method = HTTP_POST,
+	        .handler = led_toggle_handler,
+	        .user_ctx = NULL
+	    };
+	    httpd_register_uri_handler(http_server_handle, &post_toggle2);
 		return http_server_handle;
 	}
 
@@ -295,54 +324,158 @@ BaseType_t http_server_monitor_send_message(http_server_message_e msgID)
 }
 
 
-
-
-static esp_err_t led_control_handler(httpd_req_t *req)
+/**
+ * Helper: convert numeric led state (0/1) to "off"/"on" string.
+ * Returns pointer to a literal (do not free).
+ */
+static const char* led_state_str_from_level(int level)
 {
-    ESP_LOGI(TAG, "JSON data requested");
+    return level ? "on" : "off";
+}
 
 
-    char buf[1024] = { 0 };
-    int ret, total_length = 0;
+/**
+ * GET handler for /api/leds/{id}
+ * Responds with JSON: { "id": n, "state": "on"|"off" }
+ */
+static esp_err_t led_get_handler(httpd_req_t *req)
+{
+    ESP_LOGI(TAG, "LED GET request: %s", req->uri);
 
-    // read whole data
-    do {
-        ret = httpd_req_recv(req, buf + total_length, sizeof(buf) - total_length - 1);
-        if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
-            ESP_LOGI(TAG, "timeout, continue receiving");
-            continue;
-        }
-        if (ret < 0) {
-            ESP_LOGE(TAG, "Error receiving data! (status = %d)", ret);
-            return ESP_FAIL;
-        }
-        total_length += ret;
-        buf[total_length] = '\0'; // end with NULL
-    } while (ret >= sizeof(buf) - total_length); // continue if neccessary
-
-    ESP_LOGI(TAG, "Received JSON: %s", buf);             
-    // parse JSON
-    cJSON *json = cJSON_Parse(buf);
-    if (json == NULL) {
-        ESP_LOGE(TAG, "Failed to parse JSON");
+    int led_id = 0;
+    // parse LED id from URI: /api/leds/<id>
+    if (sscanf(req->uri, "/api/leds/%d", &led_id) != 1) {
+        ESP_LOGE(TAG, "Failed to parse LED id from URI: %s", req->uri);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid URI");
         return ESP_FAIL;
     }
 
-    cJSON_Delete(json);
+    if (led_id != 1 && led_id != 2) {
+        ESP_LOGE(TAG, "Invalid LED id: %d", led_id);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid LED ID");
+        return ESP_FAIL;
+    }
 
-    // resp
-    const char *resp_str = "Data received successfully!";
-    httpd_resp_send(req, resp_str, strlen(resp_str));
+    int level = io_led_get_state(led_id);
+    if (level < 0) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "GPIO read error");
+        return ESP_FAIL;
+    }
+
+    cJSON *resp = cJSON_CreateObject();
+    cJSON_AddNumberToObject(resp, "id", led_id);
+    cJSON_AddStringToObject(resp, "state", led_state_str_from_level(level));
+
+    const char *json_out = cJSON_PrintUnformatted(resp);
+    if (json_out == NULL) {
+        cJSON_Delete(resp);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "JSON error");
+        return ESP_FAIL;
+    }
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_out, strlen(json_out));
+
+    free((void*)json_out);
+    cJSON_Delete(resp);
 
     return ESP_OK;
 }
 
+/**
+ * POST handler for /api/leds/{id}/toggle
+ *
+ * It reads request body (if any) similarly to example you provided,
+ * but body content is ignored — endpoint toggles the LED and returns new state.
+ *
+ * Response JSON: { "id": n, "state": "on"|"off" }
+ */
+static esp_err_t led_toggle_handler(httpd_req_t *req)
+{
+    ESP_LOGI(TAG, "LED TOGGLE request: %s", req->uri);
 
+    int led_id = 0;
+    // parse LED id from URI: /api/leds/<id>/toggle
+    if (sscanf(req->uri, "/api/leds/%d/toggle", &led_id) != 1) {
+        ESP_LOGE(TAG, "Failed to parse LED id from URI: %s", req->uri);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid URI");
+        return ESP_FAIL;
+    }
 
+    if (led_id != 1 && led_id != 2) {
+        ESP_LOGE(TAG, "Invalid LED id: %d", led_id);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid LED ID");
+        return ESP_FAIL;
+    }
 
+    // --- read request body (optional) using same pattern as your example ---
+    // Use content_len if available to safely allocate/read body.
+    int content_len = req->content_len;
+    if (content_len > 0) {
+        // limit to reasonable size (avoid huge allocation)
+        const int max_buf = 1024;
+        int to_read = content_len > max_buf - 1 ? max_buf - 1 : content_len;
+        char *buf = malloc(to_read + 1);
+        if (buf == NULL) {
+            ESP_LOGE(TAG, "Out of memory reading body");
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Out of memory");
+            return ESP_FAIL;
+        }
+        int read_len = 0;
+        while (read_len < to_read) {
+            int r = httpd_req_recv(req, buf + read_len, to_read - read_len);
+            if (r == HTTPD_SOCK_ERR_TIMEOUT) {
+                ESP_LOGW(TAG, "recv timeout, continuing");
+                continue;
+            } else if (r <= 0) {
+                ESP_LOGW(TAG, "recv returned %d", r);
+                break;
+            }
+            read_len += r;
+        }
+        buf[read_len] = '\0';
+        ESP_LOGI(TAG, "Received body (truncated to %d bytes): %s", read_len, buf);
+        free(buf);
 
+        // If you wanted to parse JSON from body, you can do it here using cJSON_Parse()
+    } else {
+        // no body
+        ESP_LOGI(TAG, "No request body");
+    }
 
+    // Toggle LED using io layer
+    esp_err_t err = io_led_toggle(led_id);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to toggle LED%d", led_id);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "GPIO toggle failed");
+        return ESP_FAIL;
+    }
 
+    // read new level
+    int new_level = io_led_get_state(led_id);
+    if (new_level < 0) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "GPIO read error");
+        return ESP_FAIL;
+    }
 
+    // build response JSON
+    cJSON *resp = cJSON_CreateObject();
+    cJSON_AddNumberToObject(resp, "id", led_id);
+    cJSON_AddStringToObject(resp, "state", led_state_str_from_level(new_level));
 
+    const char *json_out = cJSON_PrintUnformatted(resp);
+    if (json_out == NULL) {
+        cJSON_Delete(resp);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "JSON error");
+        return ESP_FAIL;
+    }
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, json_out, strlen(json_out));
+
+    free((void*)json_out);
+    cJSON_Delete(resp);
+
+    return ESP_OK;
+}
 
