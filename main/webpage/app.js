@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-const API_URL = "http://192.168.0.1"; // <-- Twój ESP
-=======
-const API_URL = "http://192.168.0.1"; // ap adress
->>>>>>> 79d7b0baf6845391d1fdeab372e96365176af7a5
+const API_URL = "http://192.168.0.151"; // ap adress
 
 // LED elements
 const led1El = document.getElementById("led1");

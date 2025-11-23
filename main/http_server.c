@@ -15,6 +15,10 @@
 #include <string.h> 
 #include <cJSON.h> 
 #include "io.h"
+#include "nvs_flash.h"
+#include "nvs_utils.h"
+
+nvs_network_data_t network_data;
 
 // Tag used for ESP serial console messages
 static const char TAG[] = "http_server";
@@ -28,8 +32,12 @@ static TaskHandle_t task_http_server_monitor = NULL;
 // Queue handle used to manipulate the main queue of events
 static QueueHandle_t http_server_monitor_queue_handle;
 
+//control led handlers
 static esp_err_t led_get_handler(httpd_req_t *req);
 static esp_err_t led_toggle_handler(httpd_req_t *req);
+//net settings handlers
+static esp_err_t settings_net_post_handler(httpd_req_t *req); 
+static esp_err_t settings_net_get_handler(httpd_req_t *req);
 
 // Embedded files: JQuery, index.html, app.css, app.js and favicon.ico files
 extern const uint8_t jquery_3_3_1_min_js_start[]	asm("_binary_jquery_3_3_1_min_js_start");
@@ -42,6 +50,17 @@ extern const uint8_t app_js_start[]					asm("_binary_app_js_start");
 extern const uint8_t app_js_end[]					asm("_binary_app_js_end");
 extern const uint8_t favicon_ico_start[]			asm("_binary_favicon_ico_start");
 extern const uint8_t favicon_ico_end[]				asm("_binary_favicon_ico_end");
+
+/**
+ * Disable CORS policy by setting appropriate headers.
+ * @param req HTTP request for which the headers need to be set.
+ */
+
+void set_cors_headers(httpd_req_t *req) {
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Headers", "Content-Type, Authorization");
+}
 
 /**
  * HTTP server monitor task used to track events of the HTTP server
@@ -285,6 +304,24 @@ static httpd_handle_t http_server_configure(void)
 	        .user_ctx = NULL
 	    };
 	    httpd_register_uri_handler(http_server_handle, &post_toggle2);
+	    
+	    
+	    httpd_uri_t settings_net_post = {
+    			 .uri = "/api/config/network",
+   				 .method = HTTP_POST,
+   				 .handler = settings_net_post_handler,
+   				 .user_ctx = NULL
+		};
+		httpd_register_uri_handler(http_server_handle, &settings_net_post);
+		
+		httpd_uri_t settings_net_get = {
+    			 .uri = "/api/config/network",
+   				 .method = HTTP_GET,
+   				 .handler = settings_net_get_handler,
+   				 .user_ctx = NULL
+		};
+		httpd_register_uri_handler(http_server_handle, &settings_net_get);
+		
 		return http_server_handle;
 	}
 
@@ -340,6 +377,7 @@ static const char* led_state_str_from_level(int level)
  */
 static esp_err_t led_get_handler(httpd_req_t *req)
 {
+	set_cors_headers(req);
     ESP_LOGI(TAG, "LED GET request: %s", req->uri);
 
     int led_id = 0;
@@ -392,6 +430,7 @@ static esp_err_t led_get_handler(httpd_req_t *req)
  */
 static esp_err_t led_toggle_handler(httpd_req_t *req)
 {
+	set_cors_headers(req);
     ESP_LOGI(TAG, "LED TOGGLE request: %s", req->uri);
 
     int led_id = 0;
@@ -477,5 +516,90 @@ static esp_err_t led_toggle_handler(httpd_req_t *req)
     cJSON_Delete(resp);
 
     return ESP_OK;
+}
+
+//***************************SETTINGS HANDLERS*****************************/
+static esp_err_t settings_net_post_handler(httpd_req_t *req){
+	set_cors_headers(req);
+    ESP_LOGI(TAG, "Set serial number requested");
+    char buf[256] = { 0 };
+    int ret, total_length = 0;
+    
+    
+   // Receive full request body
+    do {
+        ret = httpd_req_recv(req, buf + total_length, sizeof(buf) - total_length - 1);
+        if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+            ESP_LOGI(TAG, "timeout, continue receiving");
+            continue;
+        }
+        if (ret < 0) {
+            ESP_LOGE(TAG, "Error receiving data! (status = %d)", ret);
+            return ESP_FAIL;
+        }
+        total_length += ret;
+        buf[total_length] = '\0';
+    } while (ret >= sizeof(buf) - total_length);
+
+    ESP_LOGI(TAG, "Received JSON: %s", buf);
+
+    // Parse JSON to extract password and ssid
+    cJSON *json = cJSON_Parse(buf);
+    if (!json) {
+        ESP_LOGE(TAG, "Failed to parse JSON");
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+        return ESP_FAIL;
+    }
+
+    const cJSON *password_json = cJSON_GetObjectItemCaseSensitive(json, "password");
+    const cJSON *ssid_json = cJSON_GetObjectItemCaseSensitive(json, "ssid");
+    if (!cJSON_IsString(password_json) || (password_json->valuestring == NULL)||!cJSON_IsString(ssid_json) || (ssid_json->valuestring == NULL)) {
+        ESP_LOGE(TAG, "network data missing or not a string");
+        cJSON_Delete(json);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "serial_number is required");
+        return ESP_FAIL;
+    }
+	
+	strcpy(network_data.ssid, ssid_json->valuestring);
+	strcpy(network_data.password, password_json->valuestring);
+	
+    // Save to NVS
+    esp_err_t err = nvs_save_network_data(&network_data);
+    cJSON_Delete(json);
+
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to save serial number (err=0x%x)", err);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save serial number");
+        return err;
+    }
+
+    httpd_resp_sendstr(req, "Serial set");
+    return ESP_OK;
+}
+
+static esp_err_t settings_net_get_handler(httpd_req_t *req){
+	set_cors_headers(req);
+    ESP_LOGI(TAG, "JSON data requested");
+
+    esp_err_t err = nvs_load_network_data(&network_data);
+
+    if (err == ESP_ERR_NVS_NOT_FOUND) {
+        ESP_LOGW(TAG, "Serial number not found");
+        httpd_resp_sendstr(req, "{\"serial_number\":null}");
+        return ESP_OK;
+    } else if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to load serial number (err=0x%x)", err);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read serial number");
+        return err;
+    }
+
+    // Construct JSON response
+    char json_response[128];
+    snprintf(json_response, sizeof(json_response), "{\"ssid\":\"%s\",\"password\":\"%s\"}", network_data.ssid, network_data.password);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr(req, json_response);
+
+    return ESP_OK;
+
 }
 

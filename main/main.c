@@ -10,19 +10,21 @@
 #include "wifi_app.h"
 #include "freertos/task.h"
 #include "io.h"
+#include "nvs_utils.h"
+#include "wifi_sta.h"
+
 
 void app_main(void){
     // Initialize NVS
-	esp_err_t ret = nvs_flash_init();
-	if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
-	{
-		ESP_ERROR_CHECK(nvs_flash_erase());
-		ret = nvs_flash_init();
-	}
-	ESP_ERROR_CHECK(ret);
+    esp_err_t ret = nvs_init_storage();
+    ESP_ERROR_CHECK(ret);
 
     // Start tasks
+    // Initialize the TCP stack
+	ESP_ERROR_CHECK(esp_netif_init());
 	wifi_app_start();
 	io_init();
+	//wifi_sta_init();
+
 }
 
