@@ -1,6 +1,5 @@
 # LED control – Mechatronics IV
 
-
 ---
 
 ## 📎 License
@@ -8,17 +7,7 @@
 This project is for **educational purposes** as part of the *Mechatronics III* course.  
 All rights reserved to the project authors and their institution.
 
-
-
-<img width="565" height="702" alt="image" src="https://github.com/user-attachments/assets/02e6f538-305b-4bc4-96af-2653ca6b45c6" />
-
-<img width="631" height="420" alt="image" src="https://github.com/user-attachments/assets/4ac43468-3afc-4479-8516-1df8570301b7" />
-
-<img width="631" height="525" alt="image" src="https://github.com/user-attachments/assets/ad5882b3-1dcb-4ecb-8d9b-5e566acba869" />
-
-<img width="637" height="550" alt="image" src="https://github.com/user-attachments/assets/e2e20f08-bfec-4e5a-8705-ccacb3ec3c87" />
-
-Features
+## Features
 💡 LED Control
 
 Toggle individual LEDs (1–4) remotely via a web interface.
@@ -31,7 +20,9 @@ POST /api/leds/{id}/toggle → toggles the LED and returns new state
 
 Real-time feedback in the web dashboard using AJAX.
 
-📦 OTA Firmware Updates
+<img width="565" height="702" alt="image" src="https://github.com/user-attachments/assets/02e6f538-305b-4bc4-96af-2653ca6b45c6" />
+
+## 📦 OTA Firmware Updates
 
 Upload new firmware directly from the web interface.
 
@@ -43,7 +34,11 @@ JSON API for OTA status:
 
 POST /OTAstatus → { "ota_update_status": 0|1|-1, "compile_time": "...", "compile_date": "..." }
 
-📶 Wi-Fi & Network Configuration
+<img width="631" height="420" alt="image" src="https://github.com/user-attachments/assets/4ac43468-3afc-4479-8516-1df8570301b7" />
+
+<img width="631" height="525" alt="image" src="https://github.com/user-attachments/assets/ad5882b3-1dcb-4ecb-8d9b-5e566acba869" />
+
+## 📶 Wi-Fi & Network Configuration
 
 View and modify network SSID and password via the web interface.
 
@@ -55,7 +50,9 @@ GET /api/config/ip_addr → { "ip": "192.168.0.X" }
 GET /api/config/network → { "ssid": "...", "password": "..." }
 POST /api/config/network → save new credentials
 
-🖥️ Web Interface
+<img width="637" height="550" alt="image" src="https://github.com/user-attachments/assets/e2e20f08-bfec-4e5a-8705-ccacb3ec3c87" />
+
+## 🖥️ Web Interface
 
 Fully responsive dashboard served by the ESP’s internal web server.
 
@@ -69,7 +66,7 @@ app.css for styling
 
 jQuery 3.3.1
 
-⚡ Efficient HTTP Server
+## ⚡ Efficient HTTP Server
 
 Custom HTTP server using ESP-IDF’s httpd module.
 
@@ -79,7 +76,7 @@ Provides RESTful endpoints for LEDs, OTA, and network management.
 
 Designed for robustness with CORS support, JSON handling, and OTA error recovery.
 
-🔧 Project Highlights
+## 🔧 Project Highlights
 
 Multi-tasking with FreeRTOS: HTTP server and monitoring task run concurrently.
 
