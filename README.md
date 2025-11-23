@@ -4,7 +4,7 @@
 
 ## 📎 License
 
-This project is for **educational purposes** as part of the *Mechatronics III* course.  
+This project is for **educational purposes** as part of the *Mechatronics MUP IV semester* course.  
 All rights reserved to the project authors and their institution.
 
 ## Features
