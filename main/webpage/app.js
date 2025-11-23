@@ -1,4 +1,4 @@
-const API_URL = "http://192.168.0.151"; // ap adress
+let API_URL = "http://192.168.0.1"; // AP adress
 
 // LED elements
 const led1El = document.getElementById("led1");
@@ -19,6 +19,7 @@ const btnSaveNetwork = document.getElementById("btnSaveNetwork");
 const ssidInput = document.getElementById("ssid");
 const passwordInput = document.getElementById("password");
 const networkStatus = document.getElementById("network_status");
+
 
 // ===== TABS =====
 document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -131,3 +132,66 @@ btnSaveNetwork.addEventListener("click", async ()=>{
     else networkStatus.textContent="Błąd zapisu ❌";
   } catch(e){ networkStatus.textContent="Błąd zapisu ❌"; console.error(e); }
 });
+
+
+// ===== FAST STA NETWORK DISCOVERY (PARALLEL BATCH SCANNING) =====
+// Quickly scan 192.168.0.x for device's STA IP using parallel batches
+async function discoverStaApiUrl() {
+  const subnet = "192.168.0."; // adjust if needed
+  const timeout = 400; // lower timeout = faster scan
+  const batchSize = 50; // how many IP to scan at once
+  let found = false;
+
+  console.log("Starting FAST STA discovery...");
+
+  // helper request function with timeout
+  async function probeIp(testIp) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeout);
+
+      const res = await fetch(`http://${testIp}/api/config/ip_addr`, {
+        signal: controller.signal
+      });
+
+      clearTimeout(timer);
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ip && data.ip !== "0.0.0.0") {
+          return testIp;
+        }
+      }
+    } catch (e) {
+      // no response
+    }
+    return null;
+  }
+
+  // process 254 addresses in batches
+  for (let start = 1; start <= 254; start += batchSize) {
+    const batch = [];
+
+    for (let i = start; i < start + batchSize && i <= 254; i++) {
+      batch.push(probeIp(`${subnet}${i}`));
+    }
+
+    const results = await Promise.all(batch);
+    const hit = results.find(ip => ip !== null);
+
+    if (hit) {
+		console.log("FOUND STA device at:", hit);
+		API_URL = `http://${hit}`; 
+		found = true;
+		break;
+    }
+  }
+
+  if (!found) {
+    console.log("STA device not found in subnet.");
+  }
+}
+
+// run at startup
+discoverStaApiUrl();
+

@@ -38,6 +38,7 @@ static esp_err_t led_toggle_handler(httpd_req_t *req);
 //net settings handlers
 static esp_err_t settings_net_post_handler(httpd_req_t *req); 
 static esp_err_t settings_net_get_handler(httpd_req_t *req);
+static esp_err_t settings_ip_get_handler(httpd_req_t *req);
 
 // Embedded files: JQuery, index.html, app.css, app.js and favicon.ico files
 extern const uint8_t jquery_3_3_1_min_js_start[]	asm("_binary_jquery_3_3_1_min_js_start");
@@ -322,6 +323,14 @@ static httpd_handle_t http_server_configure(void)
 		};
 		httpd_register_uri_handler(http_server_handle, &settings_net_get);
 		
+				httpd_uri_t ip_addr_get = {
+    			 .uri = "/api/config/ip_addr",
+   				 .method = HTTP_GET,
+   				 .handler = settings_ip_get_handler,
+   				 .user_ctx = NULL
+		};
+		httpd_register_uri_handler(http_server_handle, &ip_addr_get);
+		
 		return http_server_handle;
 	}
 
@@ -601,5 +610,26 @@ static esp_err_t settings_net_get_handler(httpd_req_t *req){
 
     return ESP_OK;
 
+}
+
+
+static esp_err_t settings_ip_get_handler(httpd_req_t *req){
+    char resp_str[64] = {0};
+
+    if (esp_netif_sta != NULL){
+        esp_netif_ip_info_t ip_info;
+        if (esp_netif_get_ip_info(esp_netif_sta, &ip_info) == ESP_OK){
+            snprintf(resp_str, sizeof(resp_str), "{\"ip\":\"" IPSTR "\"}", IP2STR(&ip_info.ip));
+        }
+        else snprintf(resp_str, sizeof(resp_str), "{\"ip\":\"0.0.0.0\"}");
+
+    }
+    else snprintf(resp_str, sizeof(resp_str), "{\"ip\":\"0.0.0.0\"}");
+    
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_send(req, resp_str, HTTPD_RESP_USE_STRLEN);
+
+    return ESP_OK;
 }
 
