@@ -1,8 +1,8 @@
 /*
  * http_server.c
  *
- *  Created on: Oct 20, 2021
- *      Author: kjagu
+ *  Created on: Oct 20, 2025
+ *      Author: majorBien
  */
 
 #include "esp_http_server.h"
@@ -84,6 +84,13 @@ const esp_timer_create_args_t fw_update_reset_args = {
 };
 esp_timer_handle_t fw_update_reset;
 
+void http_server_fw_update_reset_callback(void *arg)
+{
+	ESP_LOGI(TAG, "http_server_fw_update_reset_callback: Timer timed-out, restarting the device");
+	esp_restart();
+}
+
+
 /**
  * Checks the g_fw_update_status and creates the fw_update_reset timer if g_fw_update_status is true.
  */
@@ -135,14 +142,14 @@ static void http_server_monitor(void *parameter)
 
 				case HTTP_MSG_FIRMWARE_UPDATE_SUCCESSFUL:
 					ESP_LOGI(TAG, "HTTP_MSG_OTA_UPDATE_SUCCESSFUL");
-					//g_fw_update_status = OTA_UPDATE_SUCCESSFUL;
-					//http_server_fw_update_reset_timer();
+					g_fw_update_status = OTA_UPDATE_SUCCESSFUL;
+					http_server_fw_update_reset_timer();
 
 					break;
 
 				case HTTP_MSG_FIRMWARE_UPDATE_FAILED:
 					ESP_LOGI(TAG, "HTTP_MSG_OTA_UPDATE_FAILED");
-					//g_fw_update_status = OTA_UPDATE_FAILED;
+					g_fw_update_status = OTA_UPDATE_FAILED;
 
 					break;
 
@@ -285,7 +292,7 @@ esp_err_t http_server_OTA_update_handler(httpd_req_t *req)
 			}
 			else
 			{
-				printf("http_server_OTA_update_handler: Writing to partition subtype %d at offset 0x%lx\r\n", update_partition->subtype, update_partition->address);
+				printf("http_server_OTA_update_handler: Writing to partition subtype %d at offset 0x%d\r\n", update_partition->subtype, (int)update_partition->address);
 			}
 
 			// Write this first part of the data
@@ -307,7 +314,7 @@ esp_err_t http_server_OTA_update_handler(httpd_req_t *req)
 		if (esp_ota_set_boot_partition(update_partition) == ESP_OK)
 		{
 			const esp_partition_t *boot_partition = esp_ota_get_boot_partition();
-			ESP_LOGI(TAG, "http_server_OTA_update_handler: Next boot partition subtype %d at offset 0x%lx", boot_partition->subtype, boot_partition->address);
+			ESP_LOGI(TAG, "http_server_OTA_update_handler: Next boot partition subtype %d at offset 0x%d", boot_partition->subtype, (int)boot_partition->address);
 			flash_successful = true;
 		}
 		else
@@ -454,6 +461,24 @@ static httpd_handle_t http_server_configure(void)
 	        .user_ctx = NULL
 	    };
 	    httpd_register_uri_handler(http_server_handle, &get_led2);
+	    
+	    // GET /api/leds/3
+		httpd_uri_t get_led3 = {
+		    .uri = "/api/leds/3",
+		    .method = HTTP_GET,
+		    .handler = led_get_handler,
+		    .user_ctx = NULL
+		};
+		httpd_register_uri_handler(http_server_handle, &get_led3);
+		
+		// GET /api/leds/4
+		httpd_uri_t get_led4 = {
+		    .uri = "/api/leds/4",
+		    .method = HTTP_GET,
+		    .handler = led_get_handler,
+		    .user_ctx = NULL
+		};
+		httpd_register_uri_handler(http_server_handle, &get_led4);
 	
 	    // POST /api/leds/1/toggle
 	    httpd_uri_t post_toggle1 = {
@@ -473,7 +498,25 @@ static httpd_handle_t http_server_configure(void)
 	    };
 	    httpd_register_uri_handler(http_server_handle, &post_toggle2);
 	    
-	    
+	    // POST /api/leds/3/toggle
+		httpd_uri_t post_toggle3 = {
+		    .uri = "/api/leds/3/toggle",
+		    .method = HTTP_POST,
+		    .handler = led_toggle_handler,
+		    .user_ctx = NULL
+		};
+		httpd_register_uri_handler(http_server_handle, &post_toggle3);
+		
+		// POST /api/leds/4/toggle
+		httpd_uri_t post_toggle4 = {
+		    .uri = "/api/leds/4/toggle",
+		    .method = HTTP_POST,
+		    .handler = led_toggle_handler,
+		    .user_ctx = NULL
+		};
+		httpd_register_uri_handler(http_server_handle, &post_toggle4);
+		
+		//network settings handlers	    
 	    httpd_uri_t settings_net_post = {
     			 .uri = "/api/config/network",
    				 .method = HTTP_POST,
@@ -564,7 +607,7 @@ static esp_err_t led_get_handler(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    if (led_id != 1 && led_id != 2) {
+    if (led_id < 1 || led_id > 4) {
         ESP_LOGE(TAG, "Invalid LED id: %d", led_id);
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid LED ID");
         return ESP_FAIL;
@@ -617,17 +660,16 @@ static esp_err_t led_toggle_handler(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    if (led_id != 1 && led_id != 2) {
+    if (led_id < 1 || led_id > 4) {
         ESP_LOGE(TAG, "Invalid LED id: %d", led_id);
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid LED ID");
         return ESP_FAIL;
     }
 
-    // --- read request body (optional) using same pattern as your example ---
-    // Use content_len if available to safely allocate/read body.
+
     int content_len = req->content_len;
     if (content_len > 0) {
-        // limit to reasonable size (avoid huge allocation)
+        // limit to reasonable size
         const int max_buf = 1024;
         int to_read = content_len > max_buf - 1 ? max_buf - 1 : content_len;
         char *buf = malloc(to_read + 1);
@@ -652,11 +694,9 @@ static esp_err_t led_toggle_handler(httpd_req_t *req)
         ESP_LOGI(TAG, "Received body (truncated to %d bytes): %s", read_len, buf);
         free(buf);
 
-        // If you wanted to parse JSON from body, you can do it here using cJSON_Parse()
-    } else {
-        // no body
-        ESP_LOGI(TAG, "No request body");
-    }
+        
+    } else ESP_LOGI(TAG, "No request body");
+    
 
     // Toggle LED using io layer
     esp_err_t err = io_led_toggle(led_id);

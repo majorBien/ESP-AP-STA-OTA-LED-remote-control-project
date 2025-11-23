@@ -15,7 +15,6 @@ const fileInput = document.getElementById("selected_file");
 const btnUpdate = document.getElementById("btnUpdate");
 const fileInfo = document.getElementById("file_info");
 const otaStatus = document.getElementById("ota_update_status");
-const latestFirmware = document.getElementById("latest_firmware");
 
 // Network elements
 const btnGetNetwork = document.getElementById("btnGetNetwork");
@@ -23,6 +22,24 @@ const btnSaveNetwork = document.getElementById("btnSaveNetwork");
 const ssidInput = document.getElementById("ssid");
 const passwordInput = document.getElementById("password");
 const networkStatus = document.getElementById("network_status");
+
+const otaProgress = document.getElementById("ota_progress");
+
+function updateProgress(event) {
+  if (event.lengthComputable) {
+    const percent = Math.round((event.loaded / event.total) * 100);
+    otaProgress.style.display = "block";
+    otaProgress.value = percent;
+
+    otaStatus.textContent = `Wysyłanie pliku... ${percent}%`;
+
+    if (percent === 100) {
+      otaStatus.textContent = "Upload zakończony. Trwa weryfikacja...";
+    }
+
+    getUpdateStatus();
+  }
+}
 
 
 // ===== TABS =====
@@ -95,21 +112,31 @@ btnUpdate.addEventListener("click", ()=>{
   xhr.send(formData);
 });
 
-function updateProgress(event){ if(event.lengthComputable) getUpdateStatus(); }
 
 function getUpdateStatus(){
   const xhr = new XMLHttpRequest();
-  xhr.open("POST", `${API_URL}/OTAstatus`, false);
+  xhr.open("POST", `${API_URL}/OTAstatus`);
+
+  xhr.onload = () => {
+    if (xhr.status === 200) {
+      const resp = JSON.parse(xhr.responseText);
+
+      if (resp.ota_update_status === 1) {
+        seconds = 10;
+        otaRebootTimer();
+      }
+      else if (resp.ota_update_status === -1) {
+        otaStatus.textContent = "!!! Upload Error !!!";
+      }
+    }
+  };
+
   xhr.send("ota_update_status");
-  if(xhr.readyState===4 && xhr.status===200){
-    const resp=JSON.parse(xhr.responseText);
-    latestFirmware.textContent=`${resp.compile_date} - ${resp.compile_time}`;
-    if(resp.ota_update_status===1){ seconds=10; otaRebootTimer(); }
-    else if(resp.ota_update_status===-1){ otaStatus.textContent="!!! Upload Error !!!"; }
-  }
 }
 
+
 function otaRebootTimer(){
+  otaProgress.style.display = "none"; 
   otaStatus.textContent=`OTA Firmware Update Complete. Rebooting in: ${seconds}`;
   if(--seconds===0){ clearTimeout(otaTimerVar); window.location.reload(); }
   else{ otaTimerVar=setTimeout(otaRebootTimer,1000); }

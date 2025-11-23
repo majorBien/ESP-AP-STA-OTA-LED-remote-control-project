@@ -18,7 +18,6 @@
 
   <main>
     <!-- LED CONTROL -->
-	<!-- LED CONTROL -->
 	<section id="led" class="tab active">
 	  <div class="led-container">
 	    <div class="led-card">
@@ -51,9 +50,10 @@
       <div class="ota-section">
         <input type="file" id="selected_file">
         <button id="btnUpdate">Aktualizuj oprogramowanie</button>
+		<br>
+		<progress id="ota_progress" value="0" max="100" style="width: 100%; display:none;"></progress>
         <div id="file_info"></div>
         <div id="ota_update_status"></div>
-        <div>Latest Firmware: <span id="latest_firmware">?</span></div>
       </div>
     </section>
 

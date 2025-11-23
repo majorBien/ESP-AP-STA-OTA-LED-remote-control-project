@@ -18,12 +18,21 @@ extern "C" {
 // GPIO definitions for LEDs
 // ==============================
 #ifndef LED1_GPIO
-#define LED1_GPIO   GPIO_NUM_21   // Built-in LED on some ESP32 boards
+#define LED1_GPIO   GPIO_NUM_21   
 #endif
 
 #ifndef LED2_GPIO
-#define LED2_GPIO   GPIO_NUM_19   // Example external LED pin
+#define LED2_GPIO   GPIO_NUM_19   
 #endif
+
+#ifndef LED3_GPIO
+#define LED3_GPIO   GPIO_NUM_18
+#endif
+
+#ifndef LED4_GPIO
+#define LED4_GPIO   GPIO_NUM_5
+#endif
+
 
 // ==============================
 // LED logical states
