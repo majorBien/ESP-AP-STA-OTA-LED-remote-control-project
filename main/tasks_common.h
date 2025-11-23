@@ -9,23 +9,6 @@
 #define MAIN_TASKS_COMMON_H_
 
 
-
-#define ETH_APP_TASK_STACK_SIZE				4096
-#define ETH_APP_TASK_PRIORITY				6
-#define ETH_APP_TASK_CORE_ID				0
-
-#define TCP_CLIENT_TASK_STACK_SIZE			4096
-#define TCP_CLIENT_TASK_PRIORITY			6
-#define TCP_CLIENT_TASK_CORE_ID				0
-
-#define LOGIC_TASK_STACK_SIZE				4096
-#define LOGIC_TASK_PRIORITY					8
-#define LOGIC_TASK_CORE_ID					0
-
-#define ADC_TASK_STACK_SIZE					4096
-#define ADC_TASK_PRIORITY					10
-#define ADC_TASK_CORE_ID					0
-
 // WiFi application task
 #define WIFI_APP_TASK_STACK_SIZE			4096
 #define WIFI_APP_TASK_PRIORITY				5

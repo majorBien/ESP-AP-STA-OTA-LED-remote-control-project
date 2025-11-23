@@ -425,7 +425,15 @@ static httpd_handle_t http_server_configure(void)
 				.user_ctx = NULL
 		};
 		httpd_register_uri_handler(http_server_handle, &app_js);
-
+		// register favicon.ico handler
+		httpd_uri_t favicon_ico = {
+				.uri = "/favicon.ico",
+				.method = HTTP_GET,
+				.handler = http_server_favicon_ico_handler,
+				.user_ctx = NULL
+		};
+		httpd_register_uri_handler(http_server_handle, &favicon_ico);
+		
 		httpd_uri_t OTA_update = {
 				.uri = "/OTAupdate",
 				.method = HTTP_POST,
