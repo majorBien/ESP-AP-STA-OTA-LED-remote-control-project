@@ -8,135 +8,81 @@
 This project is for **educational purposes** as part of the *Mechatronics III* course.  
 All rights reserved to the project authors and their institution.
 
----
-
-##  API
-
-"""
-🔌 API LED
-1️⃣ Odczyt stanu LED (GET)
-Endpointy:
-
-GET /api/leds/1 — odczyt stanu diody LED 1
-
-GET /api/leds/2 — odczyt stanu diody LED 2
-
-Opis:
-
-Zwraca aktualny stan danej diody w formacie JSON (on lub off).
-
-Odpowiedź (200 OK):
-{
-  "id": 1,
-  "state": "on"
-}
-
-Przykłady curl:
-curl http://localhost:5000/api/leds/1
-curl http://localhost:5000/api/leds/2
-
-2️⃣ Przełączanie stanu LED (POST)
-Endpointy:
-
-POST /api/leds/1/toggle — zmiana stanu diody LED 1
-
-POST /api/leds/2/toggle — zmiana stanu diody LED 2
-
-Opis:
-
-Zmienia stan diody na przeciwny — jeśli była on, zostanie off, i odwrotnie.
-Nie wymaga żadnego ciała żądania (body).
-
-Odpowiedź (200 OK):
-{
-  "id": 1,
-  "state": "off"
-}
-
-Przykłady curl:
-curl -X POST http://localhost:5000/api/leds/1/toggle
-curl -X POST http://localhost:5000/api/leds/2/toggle
-
-📡 REST API — Network Configuration
-
-Base URL:
-
-http://<device_ip_address>/api/config/network
 
 
-This endpoint allows the frontend to get and set the Wi-Fi network configuration (SSID and password) stored on the ESP32.
+<img width="565" height="702" alt="image" src="https://github.com/user-attachments/assets/02e6f538-305b-4bc4-96af-2653ca6b45c6" />
 
-1️⃣ GET /api/config/network
+<img width="631" height="420" alt="image" src="https://github.com/user-attachments/assets/4ac43468-3afc-4479-8516-1df8570301b7" />
 
-Description:
-Retrieve the currently stored network credentials (SSID and password) from the ESP32.
+<img width="631" height="525" alt="image" src="https://github.com/user-attachments/assets/ad5882b3-1dcb-4ecb-8d9b-5e566acba869" />
 
-Request:
+<img width="637" height="550" alt="image" src="https://github.com/user-attachments/assets/e2e20f08-bfec-4e5a-8705-ccacb3ec3c87" />
 
-GET /api/config/network
+Features
+💡 LED Control
 
+Toggle individual LEDs (1–4) remotely via a web interface.
 
-Headers:
+Query LED states using JSON API:
 
-Content-Type: application/json
-
-
-Response:
-
-{
-  "ssid": "MyWiFi",
-  "password": "MySecretPassword"
-}
+GET /api/leds/{id} → { "id": n, "state": "on"|"off" }
+POST /api/leds/{id}/toggle → toggles the LED and returns new state
 
 
-If no data is found:
+Real-time feedback in the web dashboard using AJAX.
 
-{
-  "serial_number": null
-}
+📦 OTA Firmware Updates
 
+Upload new firmware directly from the web interface.
 
-Status Codes:
+Progress bar with percentage updates.
 
-200 OK – Data successfully retrieved
+Automatic flashing and reboot to the new firmware.
 
-500 Internal Server Error – Failed to load data from NVS
+JSON API for OTA status:
 
-2️⃣ POST /api/config/network
+POST /OTAstatus → { "ota_update_status": 0|1|-1, "compile_time": "...", "compile_date": "..." }
 
-Description:
-Save new Wi-Fi credentials (SSID and password) to the ESP32’s NVS storage.
+📶 Wi-Fi & Network Configuration
 
-Request:
+View and modify network SSID and password via the web interface.
 
-POST /api/config/network
+Save settings to non-volatile storage (NVS).
 
+Retrieve current device IP address:
 
-Headers:
+GET /api/config/ip_addr → { "ip": "192.168.0.X" }
+GET /api/config/network → { "ssid": "...", "password": "..." }
+POST /api/config/network → save new credentials
 
-Content-Type: application/json
+🖥️ Web Interface
 
+Fully responsive dashboard served by the ESP’s internal web server.
 
-Body (JSON):
+Built with:
 
-{
-  "ssid": "MyWiFi",
-  "password": "MySecretPassword"
-}
+index.html
 
+app.js for dynamic behavior
 
-Response (Success):
+app.css for styling
 
-Serial set
+jQuery 3.3.1
 
+⚡ Efficient HTTP Server
 
-Status Codes:
+Custom HTTP server using ESP-IDF’s httpd module.
 
-200 OK – Data saved successfully
+Handles static files (HTML, CSS, JS, favicon.ico).
 
-400 Bad Request – Invalid or missing JSON fields
+Provides RESTful endpoints for LEDs, OTA, and network management.
 
-500 Internal Server Error – Failed to save data
+Designed for robustness with CORS support, JSON handling, and OTA error recovery.
 
+🔧 Project Highlights
 
----
+Multi-tasking with FreeRTOS: HTTP server and monitoring task run concurrently.
+
+Supports concurrent requests for LED control and OTA updates.
+
+Modular code: easy to extend for additional sensors or actuators.
