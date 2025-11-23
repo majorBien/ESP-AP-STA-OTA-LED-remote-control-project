@@ -3,8 +3,12 @@ let API_URL = "http://192.168.0.1"; // AP adress
 // LED elements
 const led1El = document.getElementById("led1");
 const led2El = document.getElementById("led2");
+const led3El = document.getElementById("led3");
+const led4El = document.getElementById("led4");
 const led1Btn = document.getElementById("led1-btn");
 const led2Btn = document.getElementById("led2-btn");
+const led3Btn = document.getElementById("led3-btn");
+const led4Btn = document.getElementById("led4-btn");
 
 // OTA elements
 const fileInput = document.getElementById("selected_file");
@@ -57,10 +61,15 @@ async function updateLedDisplay(id, ledEl) {
 // Button events
 led1Btn.addEventListener('click', async () => { await toggleLed(1); updateLedDisplay(1, led1El); });
 led2Btn.addEventListener('click', async () => { await toggleLed(2); updateLedDisplay(2, led2El); });
+led3Btn.addEventListener('click', async () => { await toggleLed(3); updateLedDisplay(3, led3El); });
+led4Btn.addEventListener('click', async () => { await toggleLed(4); updateLedDisplay(4, led4El); });
 
 // Initial fetch
 updateLedDisplay(1, led1El);
 updateLedDisplay(2, led2El);
+updateLedDisplay(3, led3El);
+updateLedDisplay(4, led4El);
+
 
 // ===== OTA UPDATE =====
 let seconds=null, otaTimerVar=null;
