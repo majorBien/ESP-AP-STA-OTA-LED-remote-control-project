@@ -1,0 +1,282 @@
+openapi: 3.0.0
+info:
+  title: ESP32 HTTP Server API
+  description: API for ESP32 HTTP server with LED control, OTA updates, and network configuration
+  version: 1.0.0
+  contact:
+    name: ESP32 Server
+    url: http://192.168.0.1
+
+servers:
+  - url: http://192.168.0.1
+    description: ESP32 HTTP Server
+
+paths:
+  # Static file endpoints
+  /:
+    get:
+      summary: Serve index.html
+      responses:
+        '200':
+          description: HTML content
+          content:
+            text/html: {}
+
+  /app.css:
+    get:
+      summary: Serve CSS file
+      responses:
+        '200':
+          description: CSS content
+          content:
+            text/css: {}
+
+  /app.js:
+    get:
+      summary: Serve JavaScript file
+      responses:
+        '200':
+          description: JavaScript content
+          content:
+            application/javascript: {}
+
+  /jquery-3.3.1.min.js:
+    get:
+      summary: Serve jQuery library
+      responses:
+        '200':
+          description: jQuery library
+          content:
+            application/javascript: {}
+
+  /favicon.ico:
+    get:
+      summary: Serve favicon
+      responses:
+        '200':
+          description: Icon file
+          content:
+            image/x-icon: {}
+
+  # LED Control Endpoints
+  /api/leds/{id}:
+    get:
+      summary: Get LED state
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 4
+          description: LED ID (1-4)
+      responses:
+        '200':
+          description: LED state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  state:
+                    type: string
+                    enum: [on, off]
+                    example: "on"
+        '400':
+          description: Invalid LED ID
+        '500':
+          description: GPIO read error
+
+  /api/leds/{id}/toggle:
+    post:
+      summary: Toggle LED state
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 4
+          description: LED ID (1-4)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: LED toggled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  state:
+                    type: string
+                    enum: [on, off]
+                    example: "off"
+        '400':
+          description: Invalid LED ID
+        '500':
+          description: GPIO operation failed
+
+  # OTA Update Endpoints
+  /OTAupdate:
+    post:
+      summary: Perform OTA firmware update
+      description: Upload new firmware binary (multipart/form-data)
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Firmware binary file
+      responses:
+        '200':
+          description: OTA update started successfully
+        '400':
+          description: Invalid request
+        '500':
+          description: OTA update failed
+
+  /OTAstatus:
+    post:
+      summary: Get OTA update status
+      responses:
+        '200':
+          description: OTA status information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ota_update_status:
+                    type: integer
+                    description: Firmware update status code
+                  compile_time:
+                    type: string
+                    description: Firmware compile time
+                  compile_date:
+                    type: string
+                    description: Firmware compile date
+
+  # Network Configuration Endpoints
+  /api/config/network:
+    get:
+      summary: Get network configuration
+      responses:
+        '200':
+          description: Network configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ssid:
+                    type: string
+                    description: WiFi SSID
+                  password:
+                    type: string
+                    description: WiFi password
+        '404':
+          description: Network configuration not found
+        '500':
+          description: Failed to read configuration
+
+    post:
+      summary: Set network configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - ssid
+                - password
+              properties:
+                ssid:
+                  type: string
+                  description: WiFi SSID
+                  example: "MyWiFi"
+                password:
+                  type: string
+                  description: WiFi password
+                  example: "MyPassword"
+      responses:
+        '200':
+          description: Network configuration saved
+        '400':
+          description: Invalid request data
+        '500':
+          description: Failed to save configuration
+
+  /api/config/ip_addr:
+    get:
+      summary: Get current IP address
+      responses:
+        '200':
+          description: Current IP address
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ip:
+                    type: string
+                    format: ipv4
+                    example: "192.168.1.100"
+
+components:
+  schemas:
+    LED:
+      type: object
+      properties:
+        id:
+          type: integer
+        state:
+          type: string
+          enum: [on, off]
+
+    NetworkConfig:
+      type: object
+      required:
+        - ssid
+        - password
+      properties:
+        ssid:
+          type: string
+        password:
+          type: string
+
+    OTAStatus:
+      type: object
+      properties:
+        ota_update_status:
+          type: integer
+        compile_time:
+          type: string
+        compile_date:
+          type: string
+
+tags:
+  - name: LEDs
+    description: LED control endpoints
+  - name: OTA
+    description: Firmware update endpoints
+  - name: Network
+    description: Network configuration endpoints
+  - name: Static
+    description: Static file serving
