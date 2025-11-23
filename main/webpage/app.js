@@ -143,31 +143,40 @@ function otaRebootTimer(){
 }
 
 // ===== NETWORK CONFIG =====
-btnGetNetwork.addEventListener("click", async () => {
-  try{
-    const res = await fetch(`${API_URL}/api/config/network`);
-    if(res.ok){
-      const data = await res.json();
-      ssidInput.value=data.ssid||"";
-      passwordInput.value=data.password||"";
-      networkStatus.textContent="Dane pobrane ✅";
-    }
-  } catch(e){ networkStatus.textContent="Błąd pobrania ❌"; console.error(e); }
-});
+const staIpContainer = document.createElement("div"); // container for STA IP
+staIpContainer.id = "sta-ip-container";
+staIpContainer.style.marginBottom = "10px"; // optional styling
+const networkSection = document.querySelector(".network-section");
+networkSection.prepend(staIpContainer); // add at the top
 
-btnSaveNetwork.addEventListener("click", async ()=>{
-  const ssid = ssidInput.value;
-  const password = passwordInput.value;
-  try{
-    const res = await fetch(`${API_URL}/api/config/network`, {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ssid,password})
-    });
-    if(res.ok) networkStatus.textContent="Zapisano ✅";
-    else networkStatus.textContent="Błąd zapisu ❌";
-  } catch(e){ networkStatus.textContent="Błąd zapisu ❌"; console.error(e); }
-});
+async function updateStaIpLink() {
+  // Only show STA IP link if we're currently on AP IP
+  if (API_URL === "http://192.168.0.1") {
+    try {
+      const res = await fetch(`${API_URL}/api/config/ip_addr`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ip && data.ip !== "0.0.0.0") {
+          staIpContainer.innerHTML = `
+            <label>Device STA IP: </label>
+            <a href="http://${data.ip}" target="_blank">${data.ip}</a>
+          `;
+          return;
+        }
+      }
+      staIpContainer.textContent = "STA IP unavailable";
+    } catch (e) {
+      staIpContainer.textContent = "";
+      console.error(e);
+    }
+  } else {
+    // Hide if we're not on AP
+    staIpContainer.innerHTML = "";
+  }
+}
+
+// Run on startup
+updateStaIpLink();
 
 // ===== IMPROVED & MORE STABLE FAST STA DISCOVERY =====
 async function discoverStaApiUrl() {
