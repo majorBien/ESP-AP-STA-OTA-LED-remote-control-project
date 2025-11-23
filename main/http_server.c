@@ -435,7 +435,7 @@ static httpd_handle_t http_server_configure(void)
 		httpd_register_uri_handler(http_server_handle, &favicon_ico);
 		
 		httpd_uri_t OTA_update = {
-				.uri = "/OTAupdate",
+				.uri = "/api/OTA/update",
 				.method = HTTP_POST,
 				.handler = http_server_OTA_update_handler,
 				.user_ctx = NULL
@@ -444,7 +444,7 @@ static httpd_handle_t http_server_configure(void)
 
 		// register OTAstatus handler
 		httpd_uri_t OTA_status = {
-				.uri = "/OTAstatus",
+				.uri = "/api/OTA/status",
 				.method = HTTP_POST,
 				.handler = http_server_OTA_status_handler,
 				.user_ctx = NULL

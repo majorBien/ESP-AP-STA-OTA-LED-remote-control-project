@@ -107,7 +107,7 @@ btnUpdate.addEventListener("click", ()=>{
   otaStatus.textContent = `Uploading ${file.name}, Firmware Update in Progress...`;
   const xhr = new XMLHttpRequest();
   xhr.upload.addEventListener("progress", updateProgress);
-  xhr.open("POST", `${API_URL}/OTAupdate`);
+  xhr.open("POST", `${API_URL}/api/OTA/update`);
   xhr.responseType="blob";
   xhr.send(formData);
 });
@@ -115,7 +115,7 @@ btnUpdate.addEventListener("click", ()=>{
 
 function getUpdateStatus(){
   const xhr = new XMLHttpRequest();
-  xhr.open("POST", `${API_URL}/OTAstatus`);
+  xhr.open("POST", `${API_URL}/api/OTA/status`);
 
   xhr.onload = () => {
     if (xhr.status === 200) {
@@ -169,18 +169,15 @@ btnSaveNetwork.addEventListener("click", async ()=>{
   } catch(e){ networkStatus.textContent="Błąd zapisu ❌"; console.error(e); }
 });
 
-
-// ===== FAST STA NETWORK DISCOVERY (PARALLEL BATCH SCANNING) =====
-// Quickly scan 192.168.0.x for device's STA IP using parallel batches
+// ===== IMPROVED & MORE STABLE FAST STA DISCOVERY =====
 async function discoverStaApiUrl() {
-  const subnet = "192.168.0."; // adjust if needed
-  const timeout = 400; // lower timeout = faster scan
-  const batchSize = 50; // how many IP to scan at once
-  let found = false;
+  const subnet = "192.168.0.";
+  const timeout = 600;       
+  const batchSize = 50;       
+  const retryDelay = 300;     
 
-  console.log("Starting FAST STA discovery...");
+  console.log("Starting IMPROVED FAST STA discovery...");
 
-  // helper request function with timeout
   async function probeIp(testIp) {
     try {
       const controller = new AbortController();
@@ -188,45 +185,46 @@ async function discoverStaApiUrl() {
 
       const res = await fetch(`http://${testIp}/api/config/ip_addr`, {
         signal: controller.signal
-      });
+      }).catch(() => null);
 
       clearTimeout(timer);
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.ip && data.ip !== "0.0.0.0") {
+      if (res && res.ok) {
+        const data = await res.json().catch(() => null);
+        if (data && data.ip && data.ip !== "0.0.0.0") {
           return testIp;
         }
       }
-    } catch (e) {
-      // no response
-    }
+    } catch (e) {}
     return null;
   }
 
-  // process 254 addresses in batches
-  for (let start = 1; start <= 254; start += batchSize) {
-    const batch = [];
+  // run until found
+  while (true) {
+    console.log("Scanning subnet...");
 
-    for (let i = start; i < start + batchSize && i <= 254; i++) {
-      batch.push(probeIp(`${subnet}${i}`));
+    for (let start = 1; start <= 254; start += batchSize) {
+      const batch = [];
+
+      for (let i = start; i < start + batchSize && i <= 254; i++) {
+        batch.push(probeIp(`${subnet}${i}`));
+      }
+
+      const results = await Promise.all(batch);
+      const hit = results.find(ip => ip !== null);
+
+      if (hit) {
+        console.log("FOUND STA device at:", hit);
+        API_URL = `http://${hit}`;
+        return hit;    // END – device found
+      }
     }
 
-    const results = await Promise.all(batch);
-    const hit = results.find(ip => ip !== null);
-
-    if (hit) {
-		console.log("FOUND STA device at:", hit);
-		API_URL = `http://${hit}`; 
-		found = true;
-		break;
-    }
-  }
-
-  if (!found) {
-    console.log("STA device not found in subnet.");
+    console.log("Not found — retrying...");
+    await new Promise(r => setTimeout(r, retryDelay));
   }
 }
+
 
 // run at startup
 discoverStaApiUrl();

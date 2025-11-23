@@ -129,7 +129,7 @@ paths:
           description: GPIO operation failed
 
   # OTA Update Endpoints
-  /OTAupdate:
+  /api/OTA/update:
     post:
       summary: Perform OTA firmware update
       description: Upload new firmware binary (multipart/form-data)
@@ -151,7 +151,7 @@ paths:
         '500':
           description: OTA update failed
 
-  /OTAstatus:
+  /api/OTA/status:
     post:
       summary: Get OTA update status
       responses:
