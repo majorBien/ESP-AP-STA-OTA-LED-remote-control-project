@@ -20,7 +20,7 @@ POST /api/leds/{id}/toggle → toggles the LED and returns new state
 
 Real-time feedback in the web dashboard using AJAX.
 
-<img width="565" height="702" alt="image" src="https://github.com/user-attachments/assets/02e6f538-305b-4bc4-96af-2653ca6b45c6" />
+<img width="685" height="784" alt="image" src="https://github.com/user-attachments/assets/7a637205-cd0f-4663-8531-3721a2da9233" />
 
 ## 📦 OTA Firmware Updates
 
@@ -34,9 +34,10 @@ JSON API for OTA status:
 
 POST /OTAstatus → { "ota_update_status": 0|1|-1, "compile_time": "...", "compile_date": "..." }
 
-<img width="631" height="420" alt="image" src="https://github.com/user-attachments/assets/4ac43468-3afc-4479-8516-1df8570301b7" />
+<img width="692" height="460" alt="image" src="https://github.com/user-attachments/assets/253399aa-7e20-4ee7-9613-1f1936c4348d" />
 
-<img width="631" height="525" alt="image" src="https://github.com/user-attachments/assets/ad5882b3-1dcb-4ecb-8d9b-5e566acba869" />
+<img width="696" height="554" alt="image" src="https://github.com/user-attachments/assets/cb90c256-c799-43de-9c3a-50cc67cd06fb" />
+
 
 ## 📶 Wi-Fi & Network Configuration
 

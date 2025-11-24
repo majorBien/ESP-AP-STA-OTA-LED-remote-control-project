@@ -94,7 +94,7 @@ let seconds=null, otaTimerVar=null;
 fileInput.addEventListener("change", () => {
   if(fileInput.files.length>0){
     const file = fileInput.files[0];
-    fileInfo.innerHTML = `<h4>File: ${file.name}<br>Size: ${file.size} bytes</h4>`;
+    fileInfo.innerHTML = `<h4>Plik: ${file.name}<br>Rozmiar: ${file.size} bajtów</h4>`;
   }
 });
 
@@ -148,6 +148,34 @@ staIpContainer.id = "sta-ip-container";
 staIpContainer.style.marginBottom = "10px"; // optional styling
 const networkSection = document.querySelector(".network-section");
 networkSection.prepend(staIpContainer); // add at the top
+
+
+btnGetNetwork.addEventListener("click", async () => {
+  try{
+    const res = await fetch(`${API_URL}/api/config/network`);
+    if(res.ok){
+      const data = await res.json();
+      ssidInput.value=data.ssid||"";
+      passwordInput.value=data.password||"";
+      networkStatus.textContent="Dane pobrane ✅";
+    }
+  } catch(e){ networkStatus.textContent="Błąd pobrania ❌"; console.error(e); }
+});
+
+btnSaveNetwork.addEventListener("click", async ()=>{
+  const ssid = ssidInput.value;
+  const password = passwordInput.value;
+  try{
+    const res = await fetch(`${API_URL}/api/config/network`, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ssid,password})
+    });
+    if(res.ok) networkStatus.textContent="Zapisano ✅";
+    else networkStatus.textContent="Błąd zapisu ❌";
+  } catch(e){ networkStatus.textContent="Błąd zapisu ❌"; console.error(e); }
+});
+
 
 async function updateStaIpLink() {
   // Only show STA IP link if we're currently on AP IP
