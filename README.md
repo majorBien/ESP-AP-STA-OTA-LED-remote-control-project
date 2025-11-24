@@ -34,9 +34,9 @@ JSON API for OTA status:
 
 POST /OTAstatus → { "ota_update_status": 0|1|-1, "compile_time": "...", "compile_date": "..." }
 
-<img width="692" height="460" alt="image" src="https://github.com/user-attachments/assets/253399aa-7e20-4ee7-9613-1f1936c4348d" />
+<img width="807" height="471" alt="image" src="https://github.com/user-attachments/assets/1d2bba65-6ded-404e-8fd1-46a21e85fad8" />
 
-<img width="696" height="554" alt="image" src="https://github.com/user-attachments/assets/cb90c256-c799-43de-9c3a-50cc67cd06fb" />
+<img width="805" height="582" alt="image" src="https://github.com/user-attachments/assets/371333c3-3e35-4404-9bb2-2a446b5c26d9" />
 
 
 ## 📶 Wi-Fi & Network Configuration
