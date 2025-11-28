@@ -208,7 +208,7 @@ updateStaIpLink();
 
 // ===== IMPROVED & MORE STABLE FAST STA DISCOVERY =====
 async function discoverStaApiUrl() {
-  const subnet = "192.168.0.";
+  const subnets = ["192.168.0.", "172.20.10."];
   const timeout = 600;       
   const batchSize = 50;       
   const retryDelay = 300;     
@@ -238,22 +238,24 @@ async function discoverStaApiUrl() {
 
   // run until found
   while (true) {
-    console.log("Scanning subnet...");
+    for (const subnet of subnets) {
+      console.log("Scanning subnet...");
 
-    for (let start = 1; start <= 254; start += batchSize) {
-      const batch = [];
+      for (let start = 1; start <= 254; start += batchSize) {
+        const batch = [];
 
-      for (let i = start; i < start + batchSize && i <= 254; i++) {
-        batch.push(probeIp(`${subnet}${i}`));
-      }
+        for (let i = start; i < start + batchSize && i <= 254; i++) {
+          batch.push(probeIp(`${subnet}${i}`));
+        }
 
-      const results = await Promise.all(batch);
-      const hit = results.find(ip => ip !== null);
+        const results = await Promise.all(batch);
+        const hit = results.find(ip => ip !== null);
 
-      if (hit) {
-        console.log("FOUND STA device at:", hit);
-        API_URL = `http://${hit}`;
-        return hit;    // END – device found
+        if (hit) {
+          console.log("FOUND STA device at:", hit);
+          API_URL = `http://${hit}`;
+          return hit;    // END – device found
+        }
       }
     }
 
